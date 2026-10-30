@@ -3,10 +3,16 @@ package main
 import (
 	"bufio"
 	"crypto/sha256"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
 	"time"
+)
+
+var (
+	ErrUserNotFound       = errors.New("User not found")
+	ErrEmailAlreadyExists = errors.New("Email already exists")
 )
 
 type User struct {
@@ -26,7 +32,10 @@ func NewDatabase() *Database {
 	}
 }
 
-func (d *Database) AddUser(email string, hash string, timeStamp string) {
+func (d *Database) AddUser(email string, hash string, timeStamp string) error {
+	if _, err := d.SearchEmail(email); err == nil {
+		return ErrEmailAlreadyExists
+	}
 	d.CounterID++
 	d.Storage[d.CounterID] = User{
 		ID:           d.CounterID,
@@ -34,6 +43,24 @@ func (d *Database) AddUser(email string, hash string, timeStamp string) {
 		PasswordHash: hash,
 		CreatedAt:    timeStamp,
 	}
+	return nil
+}
+
+func (d Database) SearchID(ID int) (User, error) {
+	v, ok := d.Storage[ID]
+	if ok {
+		return v, nil
+	}
+	return User{}, ErrUserNotFound
+}
+
+func (d Database) SearchEmail(email string) (User, error) {
+	for k, v := range d.Storage {
+		if v.Email == email {
+			return d.Storage[k], nil
+		}
+	}
+	return User{}, ErrUserNotFound
 }
 
 func hashPassword(pass string) string {
@@ -53,7 +80,7 @@ func checkEmailForCorrectness(email string) bool {
 	return flag
 }
 
-func inputFunc() (email, passHash, timeStamp string) {
+func inputFunc(db *Database) (email, passHash, timeStamp string) {
 	scanner := bufio.NewScanner(os.Stdin)
 	for {
 		fmt.Print("Enter your e-mail: ")
@@ -65,6 +92,11 @@ func inputFunc() (email, passHash, timeStamp string) {
 		email = scanner.Text()
 		if !checkEmailForCorrectness(email) {
 			fmt.Println("Incorrect e-mail, please try again")
+			continue
+		}
+
+		if _, err := db.SearchEmail(email); err == nil {
+			fmt.Println(ErrEmailAlreadyExists)
 			continue
 		}
 
@@ -83,5 +115,16 @@ func inputFunc() (email, passHash, timeStamp string) {
 
 func main() {
 	db := NewDatabase()
-	db.AddUser(inputFunc())
+	db.AddUser("test@gmail.com", "", "")
+	db.AddUser(inputFunc(db))
+	userEmail, err := db.SearchEmail("test@gmail.com")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+	}
+	userID, err := db.SearchID(10)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+	}
+	fmt.Println(userEmail)
+	fmt.Println(userID)
 }
