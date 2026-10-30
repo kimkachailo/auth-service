@@ -21,6 +21,10 @@ type User struct {
 	PasswordHash string
 	CreatedAt    string
 }
+
+type EmailFinder interface {
+	SearchEmail(string) (User, error)
+}
 type Database struct {
 	Storage   map[int]User
 	CounterID int
@@ -80,7 +84,7 @@ func checkEmailForCorrectness(email string) bool {
 	return flag
 }
 
-func inputFunc(db *Database) (email, passHash, timeStamp string, flag bool) {
+func inputFunc(db EmailFinder) (email, passHash, timeStamp string, flag bool) {
 	scanner := bufio.NewScanner(os.Stdin)
 	for {
 		fmt.Print("Enter your e-mail: ")
