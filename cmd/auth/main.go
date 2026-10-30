@@ -2,12 +2,13 @@ package main
 
 import (
 	"bufio"
-	"crypto/sha256"
 	"errors"
 	"fmt"
 	"os"
 	"strings"
 	"time"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 var (
@@ -67,10 +68,12 @@ func (d Database) SearchEmail(email string) (User, error) {
 	return User{}, ErrUserNotFound
 }
 
-func hashPassword(pass string) string {
-	h := sha256.New()
-	h.Write([]byte(pass))
-	return string(h.Sum(nil))
+func hashPassword(pass string) (string, error) {
+	hash, err := bcrypt.GenerateFromPassword([]byte(pass), bcrypt.DefaultCost)
+	if err != nil {
+		return "", err
+	}
+	return string(hash), nil
 }
 
 func checkEmailForCorrectness(email string) bool {
@@ -120,7 +123,12 @@ func inputFunc(db EmailFinder) (email, passHash, timeStamp string, flag bool) {
 			}
 		}
 
-		passHash = hashPassword(scanner.Text())
+		hash, err := hashPassword(scanner.Text())
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+		passHash = hash
 		break
 	}
 	timeStamp = time.Now().UTC().Truncate(time.Second).String()
