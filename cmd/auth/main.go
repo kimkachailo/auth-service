@@ -80,15 +80,20 @@ func checkEmailForCorrectness(email string) bool {
 	return flag
 }
 
-func inputFunc(db *Database) (email, passHash, timeStamp string) {
+func inputFunc(db *Database) (email, passHash, timeStamp string, flag bool) {
 	scanner := bufio.NewScanner(os.Stdin)
 	for {
 		fmt.Print("Enter your e-mail: ")
-		scanner.Scan()
-		if err := scanner.Err(); err != nil {
-			fmt.Fprintln(os.Stderr, "reading standard input:", err)
-			return
+		if !scanner.Scan() {
+			if err := scanner.Err(); err != nil {
+				fmt.Fprintln(os.Stderr, "reading standard input:", err)
+				return
+			} else {
+				fmt.Println("EOF")
+				return
+			}
 		}
+
 		email = scanner.Text()
 		if !checkEmailForCorrectness(email) {
 			fmt.Println("Incorrect e-mail, please try again")
@@ -101,22 +106,34 @@ func inputFunc(db *Database) (email, passHash, timeStamp string) {
 		}
 
 		fmt.Print("Enter your password: ")
-		scanner.Scan()
-		if err := scanner.Err(); err != nil {
-			fmt.Fprintln(os.Stderr, "reading standard input:", err)
-			return
+		if !scanner.Scan() {
+			if err := scanner.Err(); err != nil {
+				fmt.Fprintln(os.Stderr, "reading standard input:", err)
+				return
+			} else {
+				fmt.Println("EOF")
+				return
+			}
 		}
+
 		passHash = hashPassword(scanner.Text())
 		break
 	}
 	timeStamp = time.Now().UTC().Truncate(time.Second).String()
+	flag = true
 	return
 }
 
 func main() {
 	db := NewDatabase()
 	db.AddUser("test@gmail.com", "", "")
-	db.AddUser(inputFunc(db))
+	email, passHash, timeStamp, ok := inputFunc(db)
+	if !ok {
+		return
+	}
+	if err := db.AddUser(email, passHash, timeStamp); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+	}
 	userEmail, err := db.SearchEmail("test@gmail.com")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
