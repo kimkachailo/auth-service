@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"net/mail"
 	"os"
 	"strings"
 	"time"
@@ -12,8 +13,9 @@ import (
 )
 
 var (
-	ErrUserNotFound       = errors.New("User not found")
-	ErrEmailAlreadyExists = errors.New("Email already exists")
+	ErrUserNotFound       = errors.New("user not found")
+	ErrEmailAlreadyExists = errors.New("email already exists")
+	ErrInvalidEmail       = errors.New("invalid email")
 )
 
 type User struct {
@@ -38,8 +40,12 @@ func NewDatabase() *Database {
 }
 
 func (d *Database) AddUser(email string, hash string, timeStamp string) error {
-	if _, err := d.SearchEmail(email); err == nil {
-		return ErrEmailAlreadyExists
+	_, err := d.SearchEmail(email)
+	if err == nil {
+		return fmt.Errorf("in AddUser: %w", ErrEmailAlreadyExists)
+	}
+	if !errors.Is(err, ErrUserNotFound) {
+		return err
 	}
 	d.CounterID++
 	d.Storage[d.CounterID] = User{
@@ -76,15 +82,18 @@ func hashPassword(pass string) (string, error) {
 	return string(hash), nil
 }
 
-func checkEmailForCorrectness(email string) bool {
-	domains := []string{"@gmail.com", "@outlook.com", "@hotmail.com", "@live.com", "@yahoo.com", "@icloud.com", "@proton.me", "@protonmail.com", "@zoho.com", "@aol.com", "@mail.ru", "@inbox.ru", "@list.ru", "@bk.ru", "@yandex.ru", "@ya.ru", "@rambler.ru", "@lenta.ru"}
-	var flag bool
-	for i := range domains {
-		if strings.HasSuffix(email, domains[i]) {
-			flag = true
-		}
+func checkEmailForCorrectness(email string) (string, error) {
+	email = strings.ToLower(strings.TrimSpace(email))
+
+	addr, err := mail.ParseAddress(email)
+	if err != nil {
+		return "", fmt.Errorf("%w: %v", ErrInvalidEmail, err)
 	}
-	return flag
+	if addr.Address != email {
+		return "", ErrInvalidEmail
+	}
+	return email, nil
+
 }
 
 func inputFunc(db EmailFinder) (email, passHash, timeStamp string, flag bool) {
@@ -101,15 +110,26 @@ func inputFunc(db EmailFinder) (email, passHash, timeStamp string, flag bool) {
 			}
 		}
 
-		email = scanner.Text()
-		if !checkEmailForCorrectness(email) {
-			fmt.Println("Incorrect e-mail, please try again")
+		validatedEmail, err := checkEmailForCorrectness(scanner.Text())
+		if err != nil {
+			if errors.Is(err, ErrInvalidEmail) {
+				fmt.Println("Invalid e-mail, please try again")
+				continue
+			} else {
+				fmt.Fprintln(os.Stderr, "checkEmailForCorrectnes error: ", err)
+				return
+			}
+		}
+		email = validatedEmail
+
+		_, err = db.SearchEmail(email)
+		if err == nil {
+			fmt.Println("This e-mail already exists")
 			continue
 		}
-
-		if _, err := db.SearchEmail(email); err == nil {
-			fmt.Println(ErrEmailAlreadyExists)
-			continue
+		if !errors.Is(err, ErrUserNotFound) {
+			fmt.Fprintln(os.Stderr, "could not check email", err)
+			return
 		}
 
 		fmt.Print("Enter your password: ")
