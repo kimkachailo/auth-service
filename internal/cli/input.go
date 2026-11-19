@@ -1,13 +1,14 @@
 package cli
 
 import (
-	"auth-service/internal/domain"
-	"auth-service/internal/email"
 	"bufio"
 	"errors"
 	"fmt"
 	"io"
 	"os"
+
+	"github.com/kimkachailo/auth-service/internal/domain"
+	"github.com/kimkachailo/auth-service/internal/email"
 )
 
 type EmailFinder interface {

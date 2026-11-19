@@ -1,7 +1,6 @@
 package http
 
 import (
-	"auth-service/internal/email"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -9,6 +8,8 @@ import (
 	"mime"
 	"net/http"
 	"strconv"
+
+	"github.com/kimkachailo/auth-service/internal/email"
 )
 
 func health(w http.ResponseWriter, r *http.Request) {

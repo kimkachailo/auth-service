@@ -1,8 +1,9 @@
 package service
 
 import (
-	"auth-service/internal/hash"
 	"time"
+
+	"github.com/kimkachailo/auth-service/internal/hash"
 )
 
 type UserAdder interface {

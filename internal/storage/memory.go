@@ -1,9 +1,10 @@
 package storage
 
 import (
-	"auth-service/internal/domain"
 	"errors"
 	"fmt"
+
+	"github.com/kimkachailo/auth-service/internal/domain"
 )
 
 type Database struct {

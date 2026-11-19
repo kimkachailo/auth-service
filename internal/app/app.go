@@ -1,17 +1,18 @@
 package app
 
 import (
-	"auth-service/internal/cli"
-	"auth-service/internal/domain"
-	myhttp "auth-service/internal/http"
-	"auth-service/internal/service"
-	"auth-service/internal/storage"
 	"errors"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"os"
+
+	"github.com/kimkachailo/auth-service/internal/cli"
+	"github.com/kimkachailo/auth-service/internal/domain"
+	myhttp "github.com/kimkachailo/auth-service/internal/http"
+	"github.com/kimkachailo/auth-service/internal/service"
+	"github.com/kimkachailo/auth-service/internal/storage"
 )
 
 func RunCLI() {

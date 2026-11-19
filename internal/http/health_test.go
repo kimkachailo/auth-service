@@ -1,11 +1,12 @@
 package http_test
 
 import (
-	myhttp "auth-service/internal/http"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	myhttp "github.com/kimkachailo/auth-service/internal/http"
 )
 
 func TestHealthRoute(t *testing.T) {
