@@ -1,8 +1,7 @@
 package storage
 
 import (
-	"errors"
-	"fmt"
+	"sync"
 
 	"github.com/kimkachailo/auth-service/internal/domain"
 )
@@ -10,6 +9,7 @@ import (
 type Database struct {
 	storage   map[int]domain.User
 	counterID int
+	mu        sync.RWMutex
 }
 
 func NewDatabase() *Database {
@@ -19,12 +19,12 @@ func NewDatabase() *Database {
 }
 
 func (d *Database) AddUser(emailAddress string, hash string, timeStamp string) error {
-	_, err := d.SearchEmail(emailAddress)
-	if err == nil {
-		return fmt.Errorf("in AddUser: %w", domain.ErrEmailAlreadyExists)
-	}
-	if !errors.Is(err, domain.ErrUserNotFound) {
-		return err
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	for _, v := range d.storage {
+		if v.Email == emailAddress {
+			return domain.ErrEmailAlreadyExists
+		}
 	}
 	d.counterID++
 	d.storage[d.counterID] = domain.User{
@@ -36,7 +36,9 @@ func (d *Database) AddUser(emailAddress string, hash string, timeStamp string) e
 	return nil
 }
 
-func (d Database) SearchID(ID int) (domain.User, error) {
+func (d *Database) SearchID(ID int) (domain.User, error) {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
 	v, ok := d.storage[ID]
 	if ok {
 		return v, nil
@@ -44,7 +46,9 @@ func (d Database) SearchID(ID int) (domain.User, error) {
 	return domain.User{}, domain.ErrUserNotFound
 }
 
-func (d Database) SearchEmail(emailAddress string) (domain.User, error) {
+func (d *Database) SearchEmail(emailAddress string) (domain.User, error) {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
 	for k, v := range d.storage {
 		if v.Email == emailAddress {
 			return d.storage[k], nil
