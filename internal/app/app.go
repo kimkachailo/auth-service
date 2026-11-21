@@ -9,7 +9,6 @@ import (
 	"os"
 
 	"github.com/kimkachailo/auth-service/internal/cli"
-	"github.com/kimkachailo/auth-service/internal/domain"
 	myhttp "github.com/kimkachailo/auth-service/internal/http"
 	"github.com/kimkachailo/auth-service/internal/service"
 	"github.com/kimkachailo/auth-service/internal/storage"
@@ -20,18 +19,14 @@ func RunCLI() {
 	emailAddress, password, err := cli.ReadRegistrationData(db)
 	if err != nil {
 		if errors.Is(err, io.EOF) {
-			fmt.Println("\nEOF")
+			fmt.Fprintln(os.Stderr, "\nInput ended before registration was complete")
 			return
 		}
 		fmt.Fprintf(os.Stderr, "in inputFunc: %v\n", err)
 		return
 	}
-	if err := service.Register(emailAddress, password, db); err != nil {
-		if errors.Is(err, domain.ErrEmailAlreadyExists) {
-			fmt.Fprintf(os.Stderr, "in register: %v\n", err)
-		} else {
-			fmt.Fprintln(os.Stderr, err)
-		}
+	if err := service.SignUp(emailAddress, password, db); err != nil {
+		fmt.Fprintln(os.Stderr, err)
 		return
 	}
 }

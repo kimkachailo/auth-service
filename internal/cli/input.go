@@ -9,6 +9,7 @@ import (
 
 	"github.com/kimkachailo/auth-service/internal/domain"
 	"github.com/kimkachailo/auth-service/internal/email"
+	"github.com/kimkachailo/auth-service/internal/hash"
 )
 
 type EmailFinder interface {
@@ -44,6 +45,7 @@ func ReadRegistrationData(db EmailFinder) (string, string, error) {
 			return "", "", err
 		}
 
+		fmt.Println("Password hint. Use 8–72 characters (Latin letters, digits, and !@#$%^&*). Include at least one uppercase letter, one digit, and one symbol.")
 		fmt.Print("Enter your password: ")
 		if !scanner.Scan() {
 			if err := scanner.Err(); err != nil {
@@ -52,6 +54,14 @@ func ReadRegistrationData(db EmailFinder) (string, string, error) {
 				return "", "", io.EOF
 			}
 		}
-		return validatedEmailAddress, scanner.Text(), nil
+		validatedPassword, err := hash.ValidatePassword(scanner.Text())
+		if err != nil {
+			if errors.Is(err, hash.ErrInvalidPassword) {
+				fmt.Println("Password does not meet the requirements")
+				continue
+			}
+			return "", "", err
+		}
+		return validatedEmailAddress, validatedPassword, nil
 	}
 }
